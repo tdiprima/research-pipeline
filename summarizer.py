@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 import requests
 
@@ -78,7 +79,11 @@ JSON response:"""
         parsed = extract_json_from_response(raw_response)
         if parsed:
             return parsed.get("summary", ""), parsed.get("topics", [])
-        logger.warning("Could not parse LLM response for: %s", title)
+        logger.warning(
+            "Could not parse LLM response for: %s | raw: %r",
+            title,
+            raw_response[:300],
+        )
         return "", []
     except requests.RequestException as exc:
         logger.error("Ollama request failed for '%s': %s", title, exc)
@@ -86,11 +91,21 @@ JSON response:"""
 
 
 def extract_json_from_response(text):
+    # Try direct parse first (model returned clean JSON)
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
 
+    # Strip markdown code fences: ```json ... ``` or ``` ... ```
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if fenced:
+        try:
+            return json.loads(fenced.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Extract the outermost {...} block
     start = text.find("{")
     end = text.rfind("}") + 1
     if start >= 0 and end > start:
@@ -98,6 +113,8 @@ def extract_json_from_response(text):
             return json.loads(text[start:end])
         except json.JSONDecodeError:
             pass
+
+    logger.debug("Raw LLM response that failed parsing: %r", text[:500])
     return None
 
 
