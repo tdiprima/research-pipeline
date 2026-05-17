@@ -35,7 +35,7 @@ def query_ollama(prompt, temperature=0.3):
         "stream": False,
         "options": {
             "temperature": temperature,
-            "num_predict": 512,
+            "num_predict": 1024,
         },
     }
     response = requests.post(
@@ -76,6 +76,9 @@ JSON response:"""
 
     try:
         raw_response = query_ollama(prompt)
+        if not raw_response:
+            logger.warning("Empty response from Ollama for: %s", title)
+            return "", []
         parsed = extract_json_from_response(raw_response)
         if parsed:
             return parsed.get("summary", ""), parsed.get("topics", [])
@@ -97,7 +100,7 @@ def extract_json_from_response(text):
     except json.JSONDecodeError:
         pass
 
-    # Strip markdown code fences: ```json ... ``` or ``` ... ```
+    # Strip complete markdown code fences: ```json { ... } ```
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if fenced:
         try:
@@ -105,7 +108,19 @@ def extract_json_from_response(text):
         except json.JSONDecodeError:
             pass
 
-    # Extract the outermost {...} block
+    # Strip opening fence only (truncated response — no closing fence)
+    stripped = re.sub(r"^```(?:json)?\s*", "", text.strip())
+
+    # Extract the outermost {...} block (handles both clean and fence-stripped text)
+    start = stripped.find("{")
+    end = stripped.rfind("}") + 1
+    if start >= 0 and end > start:
+        try:
+            return json.loads(stripped[start:end])
+        except json.JSONDecodeError:
+            pass
+
+    # Fall back to original text in case stripping made things worse
     start = text.find("{")
     end = text.rfind("}") + 1
     if start >= 0 and end > start:
