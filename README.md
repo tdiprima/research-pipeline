@@ -77,11 +77,25 @@ python main.py --briefing
 python main.py --days 3
 ```
 
-**Export all stored articles to a flat Markdown file:**
+**Export articles for a specific day to a Markdown file:**
 
 ```bash
 python export_articles.py
 ```
+
+The script lists the dates available in the database, then prompts you to pick one:
+
+```
+Available dates in database:
+  2026-05-17
+  2026-05-16
+  2026-05-15
+
+Enter a date to export (YYYY-MM-DD), 'today' (2026-05-17), or 'yesterday' (2026-05-16).
+Date [today]:
+```
+
+Press Enter to accept today, type `yesterday`, or enter any `YYYY-MM-DD` date. The output is written to `articles_export_YYYY-MM-DD.md` in the project root.
 
 **Configuration via environment variables:**
 
