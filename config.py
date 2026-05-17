@@ -42,26 +42,10 @@ OLLAMA_BASE_URL = _validate_ollama_url(
 )
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "gemma4")
 
-def _parse_float_env(name, default):
-    raw = os.environ.get(name, default)
-    try:
-        value = float(raw)
-    except ValueError:
-        raise SystemExit(
-            f"ERROR: Environment variable {name}='{raw}' is not a valid float"
-        )
-    if not (0.0 <= value <= 1.0):
-        raise SystemExit(
-            f"ERROR: Environment variable {name}={value} must be between 0.0 and 1.0"
-        )
-    return value
-
-
 FETCH_TIMEOUT_SECONDS = _parse_int_env("FETCH_TIMEOUT", "30")
 MAX_ARTICLE_AGE_DAYS = _parse_int_env("MAX_ARTICLE_AGE_DAYS", "7")
 MAX_ARTICLES_PER_FEED = _parse_int_env("MAX_ARTICLES_PER_FEED", "20")
 MAX_RESPONSE_BYTES = _parse_int_env("MAX_RESPONSE_BYTES", str(5 * 1024 * 1024))
-MIN_RELEVANCE_SCORE = _parse_float_env("MIN_RELEVANCE_SCORE", "0.5")
 
 RELEVANCE_KEYWORDS = [
     "devsecops", "devops security", "shift left", "sast", "dast", "iast",

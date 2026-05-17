@@ -3,7 +3,7 @@ import logging
 import re
 from datetime import datetime, timezone
 
-from config import BRIEFINGS_DIR, MIN_RELEVANCE_SCORE
+from config import BRIEFINGS_DIR
 from storage import fetch_recent_articles
 from trends import detect_trends, get_category_breakdown
 
@@ -24,7 +24,7 @@ def _is_safe_url(url):
 def generate_briefing(days=7, ollama_available=False):
     now = datetime.now(timezone.utc)
     date_str = now.strftime("%Y-%m-%d")
-    articles = fetch_recent_articles(days=days, min_relevance=MIN_RELEVANCE_SCORE)
+    articles = fetch_recent_articles(days=days, min_relevance=0.01)
     trend_report = detect_trends(days=30)
     category_counts = get_category_breakdown(days=days)
 
@@ -102,7 +102,7 @@ def build_by_category_section(articles):
     for category, cat_articles in sorted(grouped.items()):
         display_name = category.replace("_", " ").title()
         lines.append(f"### {display_name} ({len(cat_articles)})\n")
-        for article in cat_articles[:5]:
+        for article in cat_articles[:10]:
             title = _sanitize_markdown(article["title"][:100])
             url = article["url"]
             source = _sanitize_markdown(article["source_name"])
@@ -110,8 +110,8 @@ def build_by_category_section(articles):
                 lines.append(f"- [{title}]({url}) — *{source}*")
             else:
                 lines.append(f"- {title} — *{source}*")
-        if len(cat_articles) > 5:
-            lines.append(f"- *...and {len(cat_articles) - 5} more*")
+        if len(cat_articles) > 10:
+            lines.append(f"- *...and {len(cat_articles) - 10} more*")
         lines.append("")
 
     return "\n".join(lines)
