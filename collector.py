@@ -1,13 +1,13 @@
 import hashlib
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from html import unescape
 
 import feedparser
 import requests
 
-from config import FETCH_TIMEOUT_SECONDS, MAX_ARTICLES_PER_FEED, MAX_RESPONSE_BYTES
+from config import FETCH_TIMEOUT_SECONDS, MAX_ARTICLE_AGE_DAYS, MAX_ARTICLES_PER_FEED, MAX_RESPONSE_BYTES
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,17 @@ def parse_published_date(entry):
         except (ValueError, TypeError):
             pass
     return None
+
+
+def is_recent_enough(published_at, max_age_days):
+    if not published_at:
+        return False
+    try:
+        published_dt = datetime.fromisoformat(published_at)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
+        return published_dt >= cutoff
+    except (ValueError, TypeError):
+        return False
 
 
 def extract_content_snippet(entry, max_length=2000):
@@ -102,13 +113,17 @@ def fetch_single_feed(feed_config):
         if not url or not title:
             continue
 
+        published_at = parse_published_date(entry)
+        if not is_recent_enough(published_at, MAX_ARTICLE_AGE_DAYS):
+            continue
+
         articles.append({
             "id": generate_article_id(url),
             "url": url,
             "title": strip_html(title),
             "source_name": feed_name,
             "source_category": category,
-            "published_at": parse_published_date(entry),
+            "published_at": published_at,
             "fetched_at": now,
             "content_snippet": extract_content_snippet(entry),
         })
