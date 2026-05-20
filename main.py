@@ -18,7 +18,7 @@ import sys
 
 from collector import fetch_all_feeds
 from relevance import filter_articles
-from storage import initialize_database, insert_articles, fetch_unsummarized_articles, update_article_summary
+from storage import initialize_database, insert_articles, fetch_unsummarized_articles, get_existing_article_ids, update_article_summary
 from summarizer import check_ollama_available, summarize_batch
 from briefing import generate_briefing
 from sources import FEEDS
@@ -66,8 +66,13 @@ def run_collection_phase():
     logger.info("Fetching articles from %d feeds...", len(FEEDS))
     raw_articles = fetch_all_feeds(FEEDS)
 
-    logger.info("Scoring relevance...")
-    relevant_articles = filter_articles(raw_articles)
+    candidate_ids = [a["id"] for a in raw_articles]
+    existing_ids = get_existing_article_ids(candidate_ids) if candidate_ids else set()
+    new_articles = [a for a in raw_articles if a["id"] not in existing_ids]
+    logger.info("Skipped %d already-stored articles", len(raw_articles) - len(new_articles))
+
+    logger.info("Scoring relevance on %d new articles...", len(new_articles))
+    relevant_articles = filter_articles(new_articles)
 
     logger.info("Storing %d relevant articles...", len(relevant_articles))
     new_count = insert_articles(relevant_articles)

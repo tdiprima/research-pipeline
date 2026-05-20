@@ -67,6 +67,19 @@ def article_exists(connection, article_id):
     return cursor.fetchone() is not None
 
 
+def get_existing_article_ids(article_ids):
+    connection = get_connection()
+    try:
+        placeholders = ",".join("?" for _ in article_ids)
+        rows = connection.execute(
+            f"SELECT id FROM articles WHERE id IN ({placeholders})",
+            tuple(article_ids),
+        ).fetchall()
+        return {row["id"] for row in rows}
+    finally:
+        connection.close()
+
+
 def insert_articles(articles):
     connection = get_connection()
     inserted_count = 0
