@@ -42,7 +42,8 @@ def parse_published_date(entry):
 
 def is_recent_enough(published_at, max_age_days):
     if not published_at:
-        return False
+        # return False
+        return True  # Articles with no published_at now pass through
     try:
         published_dt = datetime.fromisoformat(published_at)
         cutoff = datetime.now(timezone.utc) - timedelta(days=max_age_days)
